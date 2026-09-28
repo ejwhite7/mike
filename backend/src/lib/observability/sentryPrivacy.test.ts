@@ -200,3 +200,32 @@ it('allows only bounded network context and known model endpoints', () => {
     expect(diagnosticRoute(`/api/models/${operation}?key=private`)).toBe(`/api/models/${operation}`);
   }
 });
+
+// MIKE-FRONTEND-J/4: an unreachable backend is one condition, not one issue
+// per route/method/stack. A pinned caller fingerprint from a fixed vocabulary
+// replaces code-location grouping; any other caller fingerprint is ignored.
+it('groups a pinned unreachable-dependency condition as one issue per cause', () => {
+  const gateway = (method: string, route: string, code = 'ECONNREFUSED') => diagnosticEvent({
+    fingerprint: ['upstream-unavailable'], level: 'warning',
+    tags: { component: 'api-gateway', stage: 'gateway-fetch', http_method: method, http_route: route, http_status: 503, failure_code: code },
+    exception: { values: [{ type: 'TypeError', value: 'fetch failed' }] },
+  });
+  expect(gateway('POST', '/chat').fingerprint).toEqual(['upstream-unavailable', 'api-gateway', 'ECONNREFUSED']);
+  expect(gateway('GET', `/projects/${id}`).fingerprint).toEqual(gateway('POST', '/chat').fingerprint);
+  expect(gateway('GET', '/chat', 'ENOTFOUND').fingerprint).not.toEqual(gateway('GET', '/chat').fingerprint);
+  expect(gateway('POST', '/chat').level).toBe('warning');
+  expect(diagnosticEvent({ fingerprint: ['api-unreachable'], tags: { component: 'mike-api', stage: 'api-unreachable', failure_code: 'fetch_failed' } }))
+    .toMatchObject({ fingerprint: ['api-unreachable', 'mike-api', 'fetch_failed'], message: 'Failure in mike-api / api-unreachable / fetch_failed' });
+  // Unknown caller fingerprints keep the default, code-location grouping.
+  expect((diagnosticEvent({ fingerprint: ['PRIVATE_TEXT'], tags: { component: 'api-gateway' } }).fingerprint as string[])[0]).toBe('{{ default }}');
+  expect(diagnosticEvent({ tags: { error_code: 'upstream_unavailable', failure_code: 'EHOSTUNREACH' } }).tags).toEqual({ error_code: 'upstream_unavailable', failure_code: 'EHOSTUNREACH' });
+  // Migrations not applied: the backend answers 503 schema_out_of_date.
+  expect(diagnosticEvent({ tags: { error_code: 'schema_out_of_date' } }).tags).toEqual({ error_code: 'schema_out_of_date' });
+});
+
+it('keeps a bounded folded network-failure count and drops anything else', () => {
+  expect(diagnosticEvent({ tags: { network_failure_count: 37 } }).tags).toEqual({ network_failure_count: 37 });
+  for (const bad of [0, -1, 100001, 1.5, '37', 'PRIVATE']) {
+    expect(diagnosticEvent({ tags: { network_failure_count: bad } }).tags).toEqual({});
+  }
+});

@@ -4,6 +4,7 @@
  *
  * Required env vars:
  *   R2_ENDPOINT_URL     — https://<account-id>.r2.cloudflarestorage.com
+ *   R2_REGION           — signing region (default: "auto" for Cloudflare R2)
  *   R2_ACCESS_KEY_ID    — R2 API token (Access Key ID)
  *   R2_SECRET_ACCESS_KEY — R2 API token (Secret Access Key)
  *   R2_BUCKET_NAME      — bucket name (default: "mike")
@@ -44,7 +45,7 @@ const CHECKSUM_DEFAULTS = {
 function getClient(): S3Client {
   if (!cachedClient) {
     cachedClient = new S3Client({
-      region: "auto",
+      region: process.env.R2_REGION || "auto",
       endpoint: process.env.R2_ENDPOINT_URL!,
       forcePathStyle: true,
       ...CHECKSUM_DEFAULTS,
@@ -64,7 +65,7 @@ function getUploadSigningClient(): S3Client {
     return cachedUploadSigningClient.client;
   }
   const client = new S3Client({
-    region: "auto",
+    region: process.env.R2_REGION || "auto",
     endpoint,
     forcePathStyle: true,
     ...CHECKSUM_DEFAULTS,

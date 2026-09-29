@@ -67,6 +67,11 @@ test("sixteen exchanges keep reasoning, resizing and disclosure updates bounded"
         const assistant = page.locator("[data-assistant-message-id]").last();
         await assistant.getByRole("button", { name: "Expand thought process", exact: true }).click();
         await page.setViewportSize({ width: 320, height: 640 });
+        // Resize reflows the transcript. Scroll as a user before reaching the
+        // bottom control: the pane intentionally rejects unowned engine scrolls
+        // (including Playwright's automatic scrollIntoView outside input grace).
+        await page.getByTestId("messages-container").hover();
+        await page.mouse.wheel(0, 100_000);
         await assistant.getByRole("button", { name: "Minimise thought process", exact: true }).click();
         const disclosure = assistant.getByRole("button", { name: /^(Thinking|Pondering|Analyzing|Reviewing|Reasoning)\.\.\.$/ });
         await disclosure.click();

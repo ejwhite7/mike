@@ -87,6 +87,30 @@ describe("same-origin API gateway", () => {
         expect(response.headers.get("cache-control")).toBe("private, no-store");
     });
 
+    it("preserves compression metadata when forwarding an encoded body", async () => {
+        const compressed = new Uint8Array([0x28, 0xb5, 0x2f, 0xfd, 0x00]);
+        fetchMock.mockResolvedValue(
+            new Response(compressed, {
+                headers: {
+                    "content-type": "application/json",
+                    "content-encoding": "zstd",
+                    "content-length": String(compressed.byteLength),
+                },
+            }),
+        );
+        const request = new NextRequest(
+            "https://app.example.test/api/user/profile",
+        );
+
+        const response = await GET(request, context(["user", "profile"]));
+
+        expect(response.headers.get("content-encoding")).toBe("zstd");
+        expect(response.headers.get("content-length")).toBe(
+            String(compressed.byteLength),
+        );
+        expect(new Uint8Array(await response.arrayBuffer())).toEqual(compressed);
+    });
+
     it("streams request and SSE response bodies without buffering", async () => {
         const encoder = new TextEncoder();
         const stream = new ReadableStream<Uint8Array>({

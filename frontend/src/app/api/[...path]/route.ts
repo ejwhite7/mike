@@ -61,9 +61,10 @@ async function proxy(request: NextRequest, context: RouteContext) {
         const upstream = await fetch(upstreamUrl, init);
         stage = "gateway-response";
         const responseHeaders = new Headers(upstream.headers);
-        // Fetch implementations may transparently decompress the response.
-        responseHeaders.delete("content-encoding");
-        responseHeaders.delete("content-length");
+        // Forward the representation metadata with the body unchanged. In the
+        // Vercel Node runtime `fetch()` can expose Caddy's compressed response
+        // stream without decompressing it; removing `content-encoding` would
+        // make the browser parse compressed bytes as JSON.
         responseHeaders.delete("etag");
         responseHeaders.delete("last-modified");
         responseHeaders.delete("expires");

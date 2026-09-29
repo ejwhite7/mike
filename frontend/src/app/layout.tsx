@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, EB_Garamond } from "next/font/google";
+import { Manrope, DM_Mono, EB_Garamond } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/app/components/providers";
 
-const inter = Inter({
-    variable: "--font-inter",
+const manrope = Manrope({
+    variable: "--font-manrope",
     subsets: ["latin"],
+});
+
+const dmMono = DM_Mono({
+    variable: "--font-dm-mono",
+    subsets: ["latin"],
+    weight: "400",
 });
 
 const ebGaramond = EB_Garamond({
@@ -64,7 +70,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body
-                className={`${inter.variable} ${ebGaramond.variable} font-sans antialiased`}
+                className={`${manrope.variable} ${dmMono.variable} ${ebGaramond.variable} font-sans antialiased`}
             >
                 <Providers>{children}</Providers>
             </body>

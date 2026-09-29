@@ -9,8 +9,8 @@ export const TABLE_SURFACE_CLASS =
 
 /**
  * The container for a text editor. It deliberately does NOT use
- * `TABLE_SURFACE_CLASS`: table containers are intentionally transparent, while
- * a surface someone is typing into remains visually raised.
+ * `TABLE_SURFACE_CLASS`: tables own sticky-cell backgrounds, while editors
+ * use the general flat surface material.
  */
 export const EDITOR_SURFACE_CLASS = `rounded-2xl ${LIQUID_GLASS_FLAT_CLASS}`;
 

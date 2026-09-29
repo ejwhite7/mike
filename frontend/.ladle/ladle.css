@@ -20,7 +20,8 @@
 @import "../src/app/globals.css";
 
 :root {
-    --font-inter: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-manrope: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    --font-dm-mono: "DM Mono", ui-monospace, monospace;
     --font-eb-garamond: "EB Garamond", ui-serif, Georgia, serif;
 }
 

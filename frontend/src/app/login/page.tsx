@@ -67,7 +67,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="relative flex min-h-dvh items-center justify-center bg-gray-50/80 px-6 py-10">
+        <div className="relative flex min-h-dvh items-center justify-center bg-gray-50/80 px-6 pb-10 pt-28">
             <div className="absolute top-4 md:top-8 left-1/2 -translate-x-1/2">
                 <SiteLogo size="lg" asLink />
             </div>

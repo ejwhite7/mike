@@ -24,9 +24,10 @@ describe("EmptyState", () => {
     it("applies the shared display heading classes", () => {
         render(<EmptyState title="Workflows" />);
         expect(screen.getByText("Workflows")).toHaveClass(
-            "font-serif",
+            "font-sans",
             "text-2xl",
-            "font-medium",
+            "font-semibold",
+            "tracking-tight",
             "text-gray-900",
         );
     });
@@ -40,7 +41,7 @@ describe("EmptyState", () => {
 
     it("uses the muted tone for the description by default", () => {
         render(<EmptyState title="Projects" description="Add one" />);
-        expect(screen.getByText("Add one")).toHaveClass("text-gray-400");
+        expect(screen.getByText("Add one")).toHaveClass("text-muted-foreground");
     });
 
     it("renders the icon and the action slots", () => {

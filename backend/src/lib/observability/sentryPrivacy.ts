@@ -248,6 +248,59 @@ export function diagnosticEnvelope(envelope: Envelope, destination?: string): En
   return [header, items];
 }
 
+const ISSUE_QUIET_MS = 60 * 60_000;
+const DAY_MS = 24 * 60 * 60_000;
+const MAX_EVENTS_PER_DAY = 50;
+
+/** One issue as Sentry groups it: our fingerprint plus the default (stack) grouping. */
+function issueKey(event: RecordValue): string {
+  const values = record(event.exception).values;
+  const exception = Array.isArray(values) ? record(values[values.length - 1]) : {};
+  const frames = record(exception.stacktrace ?? event.stacktrace).frames;
+  const top = Array.isArray(frames) ? record(frames[frames.length - 1]) : {};
+  return JSON.stringify([event.fingerprint, exception.type ?? null, top.filename ?? null, top.lineno ?? null]);
+}
+
+/**
+ * QUOTA BUDGET, per runtime (process, worker thread, browser tab, task pane).
+ * Every community install reports to one Sentry project on a 5,000 errors a
+ * month plan, so one stuck loop anywhere blinds the project for everyone: on
+ * 2026-09-23 a single install's failing poll loops sent ~4,800 events in nine
+ * hours under the old flat 60-a-minute cap, and every report after that was
+ * dropped until the period ended. Per issue, occurrences 1, 2, 4, 8, … are
+ * sent (each tagged with its occurrence number, so the real count survives);
+ * the count restarts after an hour without that issue. On top of that, a
+ * runtime sends at most MAX_EVENTS_PER_DAY events a day. A loop failing every
+ * second now costs about 17 events a day per issue instead of 14,400.
+ */
+export function eventBudget(): (event: RecordValue) => boolean {
+  const issues = new Map<string, { count: number; last: number }>();
+  let dayStart = Date.now();
+  let sentToday = 0;
+  return event => {
+    const now = Date.now();
+    if (now - dayStart >= DAY_MS) { dayStart = now; sentToday = 0; }
+    const key = issueKey(event);
+    let issue = issues.get(key);
+    if (!issue || now - issue.last >= ISSUE_QUIET_MS) {
+      issue = { count: 0, last: now };
+      issues.set(key, issue);
+      // Keep the map bounded on a long-running process.
+      if (issues.size > 1_000) {
+        for (const [other, entry] of issues) if (now - entry.last >= ISSUE_QUIET_MS) issues.delete(other);
+      }
+    }
+    issue.count += 1;
+    issue.last = now;
+    // An operator's "send a test event" probe must arrive every time it is pressed.
+    const sampledOut = (issue.count & (issue.count - 1)) !== 0 && record(event.tags).diagnostic_test !== 'true';
+    if (sampledOut || sentToday >= MAX_EVENTS_PER_DAY) return false;
+    sentToday += 1;
+    event.tags = { ...record(event.tags), occurrence: issue.count };
+    return true;
+  };
+}
+
 /** Applies to browser, server, workers and add-in, in both install modes. */
 export function privacyBoundaryIntegration() {
   return {
@@ -261,17 +314,14 @@ export function privacyBoundaryIntegration() {
       const send = transport.send.bind(transport);
       const dsn = client.getDsn?.();
       const destination = dsn?.publicKey ? `${dsn.protocol}://${dsn.publicKey}@${dsn.host}${dsn.port ? `:${dsn.port}` : ''}/${dsn.path ? `${dsn.path}/` : ''}${dsn.projectId}` : undefined;
-      let windowStart = Date.now();
-      let sent = 0;
+      // Quota control, not an auth boundary: the DSN is public by design.
+      const withinBudget = eventBudget();
       transport.send = envelope => {
         const safe = diagnosticEnvelope(envelope, destination);
         if (!safe) return Promise.resolve({});
-        const now = Date.now();
-        if (now - windowStart >= 60_000) { windowStart = now; sent = 0; }
-        // Runtime-wide bound supplements per-issue throttling; not an auth boundary.
-        if (sent + safe[1].length > 60) return Promise.resolve({});
-        sent += safe[1].length;
-        return send(safe);
+        const items = safe[1].filter(([, payload]) => withinBudget(record(payload)));
+        if (!items.length) return Promise.resolve({});
+        return send([safe[0], items]);
       };
     },
   };

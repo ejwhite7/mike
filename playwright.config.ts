@@ -13,6 +13,7 @@ export default defineConfig({
        detection. So we run strictly one test at a time. */
     fullyParallel: false,
     workers: 1,
+    timeout: process.env.REACT_STRESS === "1" ? 90_000 : 30_000,
     /* Fail the build on CI if you accidentally left test.only in the source */
     forbidOnly: !!process.env.CI,
     /* Playwright's assertion default is 5s, which is tight for this app's first

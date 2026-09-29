@@ -25,6 +25,8 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  timeout: process.env.REACT_STRESS === "1" ? 90_000 : 30_000,
+  expect: { timeout: process.env.REACT_STRESS === "1" ? 10_000 : 5_000 },
   reporter: process.env.CI ? "github" : "list",
 
   use: {

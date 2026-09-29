@@ -37,6 +37,14 @@ job:
 the local Supabase admin API, so no login secret is needed — the credentials
 baked into that file are the single source of truth.
 
+The separate **Assistant streaming (development)** job runs only
+`e2e/assistant-streaming.spec.ts` against `next dev`, with synthetic API/SSE
+fixtures and no backend, authentication setup or model-provider key. It catches
+React's development-only passive-update warning on a long conversation. Keep
+this check required alongside the production `playwright` check in branch
+protection. See [frontend-testing.md](frontend-testing.md#assistant-streaming-regressions)
+for a standalone local command.
+
 A keyless run is expected to end **27 passed / 4 skipped / 0 failed** — the
 suite currently has 31 tests, 4 of them LLM-gated (see "Confirm the specs ran"
 below). Use the Playwright summary as the source of truth if tests are added or

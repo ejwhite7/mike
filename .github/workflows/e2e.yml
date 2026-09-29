@@ -45,6 +45,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  assistant-streaming:
+    # React's passive-update warning is development-only. Keep the focused,
+    # keyless streaming regression on next dev as well as the production suite.
+    name: Assistant streaming (development)
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      SENTRY_DISABLED: "true"
+      NEXT_PUBLIC_SENTRY_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix frontend
+      - name: Ensure lightningcss native binary
+        run: npm install --no-save lightningcss --prefix frontend
+      - run: npx playwright install --with-deps chromium
+      - name: Test paced streaming with the development renderer
+        run: |
+          npm run dev --prefix frontend -- --hostname 127.0.0.1 > /tmp/assistant-streaming-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=false
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --max-time 10 "$PLAYWRIGHT_BASE_URL/assistant/chat/streaming-regression" > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            cat /tmp/assistant-streaming-next.log
+            exit 1
+          fi
+          npx playwright test e2e/assistant-streaming.spec.ts --project=chromium --no-deps --retries=0 --trace=retain-on-failure
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: assistant-streaming-development
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/assistant-streaming-next.log
+          retention-days: 14
+          if-no-files-found: ignore
+
   playwright:
     timeout-minutes: 30
     runs-on: ubuntu-latest

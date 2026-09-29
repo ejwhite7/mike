@@ -30,6 +30,45 @@ mock `global fetch` and the Supabase client module — no network, no real
 backend — one `describe` block per function or concern, and tests that assert
 current behavior.
 
+## Assistant streaming regressions
+
+Changes to chat rendering, effect dependencies, scrolling or reveal animations
+must exercise a long conversation and paced streaming, not just a completed
+response. `e2e/assistant-streaming.spec.ts` loads eight synthetic exchanges and
+sends four more replies through a browser `ReadableStream`, with CPU throttling.
+It uses the real Next.js/React renderer, fails on browser console errors and
+uncaught exceptions, and requires no model-provider key. It runs in the regular
+production Playwright suite and the separate **Assistant streaming (development)**
+job, including keyless CI runs. The development job matters because React's
+passive-update-depth warning is development-only. Make both checks required in
+branch protection; a workflow failure alone does not block a merge.
+
+Run it against the documented local stack with:
+
+```bash
+npm run test:e2e -- e2e/assistant-streaming.spec.ts
+```
+
+For a standalone frontend already running on localhost, its API fixtures and
+empty storage state also allow a run without backend/auth setup:
+
+```bash
+CI=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e -- \
+  e2e/assistant-streaming.spec.ts --project=chromium --no-deps
+```
+
+For scroll state, observe the viewport and content size and respond to scroll
+events. A changing `messages` array is not a layout signal: an effect that sets
+scroll state on every chunk can exhaust React's passive-update limit, even when
+the boolean is unchanged. Avoid dispatching equal values before calling the
+setter; pending concurrent work can prevent React's eager bailout. The
+`ChatView.actions.test.tsx` regressions check content reveal without a new message,
+resize/scroll behavior, 120 consecutive chunks and observer/frame cleanup.
+
+When investigating maximum-depth warnings, trace the repeated passive updates
+as well as the final stack. The reveal animation can be the next setter that
+crosses the limit, while a different component's effect caused the buildup.
+
 ## What the coverage gate covers
 
 The ratchet gates `src/app/lib/**` only — the client library — mirroring the

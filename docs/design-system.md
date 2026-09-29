@@ -1,12 +1,43 @@
 # Design system
 
-Mike uses Tailwind v4 with shadcn-derived `new-york` primitives for selected
-controls, alongside its own liquid-glass component system. Lucide supplies the
+Mike uses Tailwind v4 with shadcn-derived `new-york` primitives and a
+GrowthCast web theme over the existing liquid-glass component API. Lucide supplies the
 icon set. This page documents what already exists so contributors can reuse it
 instead of re-deriving it. It is a description of the current system, not a
 proposal for a new one.
 
 Everything below lives in `frontend/src/app/globals.css` unless stated otherwise.
+
+## GrowthCast web theme
+
+The web app follows [`b2b-saas-inc/growthcast-client-portal`](https://github.com/B2B-Saas-Inc/growthcast-client-portal/tree/41e0a513527089e3e9f7626503042eec407f6e07),
+specifically `portal/deployment/web-app/brand/growthcast.css` and the newer
+`portal/deployment/visual-hierarchy/surfaces.css`. The latter makes structural
+cards and controls white and strengthens input boundaries. Mike uses the
+reference’s darker `#82796b` boundary on inputs to preserve 3:1 control contrast.
+
+`frontend/src/app/growthcast-theme.css` adapts the existing material API to
+this style: warm cream canvas, white surfaces, charcoal primary actions,
+terracotta links and focus outlines, 2px structural corners, and restrained
+shadows. `globals.css` owns the app and shadcn semantic tokens. Dark mode uses
+warm charcoal surfaces with lighter coral accents. Table bodies, sticky cells,
+and skeletons consume the same tokens. Retain pill tabs and circular avatars.
+
+`SiteLogo` uses the original portal `growthcast-wordmark.png`, preserved
+byte-for-byte with its transparent padding cropped by a CSS viewport. It is
+shared by auth/onboarding pages and the sidebar; dark mode inverts the
+monochrome wordmark for contrast. Linked logos lead to `https://growthcast.app`.
+
+Manrope is the web UI face; DM Mono is available for metadata through
+`font-mono`. Page titles and empty-state headings use Manrope with tight
+tracking. EB Garamond remains available for legal document content. Load fonts
+in `layout.tsx`; the component catalog supplies matching fallback variables.
+
+The Word add-in keeps its existing theme. Shared components expose semantic
+hooks (for example `ui-action-black`) that this web-only stylesheet skins;
+shared CSS defaults remain the add-in's liquid-glass materials. The material
+API and accessibility rules below still apply, but the legacy material values
+and Inter typography described below are the shared/add-in defaults.
 
 ## Where components live
 
@@ -46,11 +77,11 @@ These back the "liquid glass" chrome and are the ones most feature code needs.
 
 | Token | Utility | Light value | Intent |
 | --- | --- | --- | --- |
-| `--app-background` | `bg-app-background` | `#f9fafb` | Page canvas behind panels. |
-| `--app-surface` | `bg-app-surface` | `#fdfdfe` | Resting surface of a panel, table header, menu. |
-| `--app-surface-hover` | `hover:bg-app-surface-hover` | `#f9fafb` | Row/item hover. |
-| `--app-surface-active` | `bg-app-surface-active` | `#eff0f3` | Selected or pressed row/item. |
-| `--app-floating` | `bg-app-floating` | `#fefefe` | Detached floating elements above a surface. |
+| `--app-background` | `bg-app-background` | `#f4f1e9` | Page canvas behind panels. |
+| `--app-surface` | `bg-app-surface` | `#ffffff` | Resting surface of a panel, table header, menu. |
+| `--app-surface-hover` | `hover:bg-app-surface-hover` | `#f5f2ec` | Row/item hover. |
+| `--app-surface-active` | `bg-app-surface-active` | `#eae5da` | Selected or pressed row/item. |
+| `--app-floating` | `bg-app-floating` | `#ffffff` | Detached floating elements above a surface. |
 
 Use the class-name constants in `components/ui/liquid-surface.ts` rather than
 retyping the utilities. Liquid-glass controls use
@@ -82,22 +113,14 @@ The standard shadcn set is present and wired through `@theme inline`:
 Use these when you pull a component from the shadcn registry, or when you want
 the meaning ("this is the destructive action") rather than a specific color.
 
-### Blue is overridden
+### Brand accent compatibility
 
-`@theme inline` redefines part of Tailwind's blue scale to Mike's azure:
-
-```css
---color-blue:     rgb(0, 136, 255);
---color-blue-50:  rgba(0, 136, 255, 0.05);
---color-blue-100: rgba(0, 136, 255, 0.1);
---color-blue-200: rgba(0, 136, 255, 0.3);
---color-blue-600: rgb(0, 136, 255);
---color-blue-700: rgb(0, 120, 230);
-```
-
-`bg-blue-600` is therefore Mike azure, not Tailwind blue. `blue-300`, `-400`,
-`-500`, `-800` and `-900` are *not* overridden, so the scale is discontinuous —
-stay on the overridden steps for brand blue.
+The web theme maps existing `blue-50`, `blue-100`, `blue-200`, `blue-500`,
+`blue-600`, and `blue-700` utilities onto the GrowthCast terracotta accent
+(`--brand-accent`) and its hover color. Prefer semantic tokens for new code.
+Primary button tones `black` and `blue` both use charcoal in the web app;
+destructive actions retain their red meaning. Document highlights retain their
+separate review colors.
 
 ### Dark mode
 
@@ -149,8 +172,8 @@ subset actually in use across `frontend/src/app/components`, by frequency:
 Stick to those steps. A one-off `px-[13px]` is the kind of drift this document
 exists to prevent.
 
-Radius comes from one token, `--radius: 0.625rem`, with the shadcn scale derived
-from it (`--radius-sm/-md/-lg/-xl` = `radius -4px / -2px / radius / +4px`). In
+Web structural radius comes from `--radius: 2px`; `rounded-sm` through
+`rounded-3xl` use it. Shared/add-in components retain their default radii. In
 practice the app uses the plain Tailwind radii directly: `rounded-full` (pills,
 icon buttons), `rounded-lg`/`rounded-md` (rows, list items), `rounded-xl`
 (inputs, cards), `rounded-2xl` (panels, dropdown surfaces).

@@ -19,20 +19,20 @@ import { useUserProfile } from "@/app/contexts/UserProfileContext";
 import { useChatHistoryContext } from "@/app/contexts/ChatHistoryContext";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { MikeIcon } from "@/app/components/chat/mike-icon";
+import { SiteLogo } from "@/app/components/site-logo";
 import { SidebarChatItem } from "@/app/components/shared/SidebarChatItem";
 import {
-    ChatSkeuoIcon,
-    IdeSkeuoIcon,
-    FolderSkeuoIcon,
-    LibrarySkeuoIcon,
-    TabularReviewSkeuoIcon,
-    WorkflowSkeuoIcon,
-    OrganizationSkeuoIcon,
-    SettingsSkeuoIcon,
-    SignOutSkeuoIcon,
-} from "@/app/components/shared/AppSidebarSkeuoIcons";
-import { HistorySkeuoIcon } from "@/app/components/shared/HistorySkeuoIcon";
+    MessageSquare,
+    CodeXml,
+    Folder,
+    Library,
+    Table2,
+    Workflow,
+    Building2,
+    Settings,
+    LogOut,
+    History,
+} from "lucide-react";
 import { ProjectSvgIcon } from "@/app/components/shared/FolderSvgIcon";
 import { listProjectSummaries } from "@/app/lib/mikeApi";
 import type { Project } from "@/app/components/shared/types";
@@ -46,16 +46,16 @@ import {
 } from "@/app/components/ui/liquid-surface";
 
 const NAV_ITEMS = [
-    { href: "/assistant", label: "Assistant", icon: ChatSkeuoIcon },
-    { href: "/ide", label: "IDE", icon: IdeSkeuoIcon },
-    { href: "/projects", label: "Projects", icon: FolderSkeuoIcon },
-    { href: "/library", label: "Library", icon: LibrarySkeuoIcon },
+    { href: "/assistant", label: "Assistant", icon: MessageSquare },
+    { href: "/ide", label: "IDE", icon: CodeXml },
+    { href: "/projects", label: "Projects", icon: Folder },
+    { href: "/library", label: "Library", icon: Library },
     {
         href: "/tabular-reviews",
         label: "Tabular Review",
-        icon: TabularReviewSkeuoIcon,
+        icon: Table2,
     },
-    { href: "/workflows", label: "Workflows", icon: WorkflowSkeuoIcon },
+    { href: "/workflows", label: "Workflows", icon: Workflow },
 ];
 
 const RECENT_PROJECT_PAGE_SIZE = 10;
@@ -292,14 +292,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                 href="/assistant"
                                 className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                             >
-                                <MikeIcon size={20} />
-                                <span
-                                    className={`text-[22px] font-light font-serif ${
-                                        shouldAnimate ? "sidebar-fade-in" : ""
-                                    }`}
-                                >
-                                    Mike
-                                </span>
+                                <SiteLogo size="sm" animate={shouldAnimate} />
                             </Link>
                         </div>
                     )}
@@ -331,7 +324,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                         return (
                             <div key={href} className="px-2 py-0.5">
                                 <button
+                                    type="button"
                                     onClick={() => router.push(href)}
+                                    aria-current={isActive ? "page" : undefined}
                                     title={!isOpen ? label : ""}
                                     className={cn(
                                         "w-full h-9 flex items-center gap-3 px-2 py-2 rounded-md transition-colors text-left",
@@ -342,6 +337,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                     )}
                                 >
                                     <Icon
+                                        aria-hidden="true"
                                         className={`h-4 w-4 flex-shrink-0 ${
                                             isActive
                                                 ? "text-gray-900"
@@ -644,7 +640,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                                 LIQUID_GLASS_SELECTED_CLASS,
                                         )}
                                     >
-                                        <HistorySkeuoIcon className="h-4 w-4" />
+                                        <History className="h-4 w-4" />
                                         History
                                     </button>
                                     <button
@@ -658,7 +654,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                             LIQUID_GLASS_HOVER_CLASS,
                                         )}
                                     >
-                                        <SettingsSkeuoIcon className="h-4 w-4" />
+                                        <Settings className="h-4 w-4" />
                                         Settings
                                     </button>
                                     <button
@@ -672,7 +668,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                             LIQUID_GLASS_HOVER_CLASS,
                                         )}
                                     >
-                                        <OrganizationSkeuoIcon className="h-4 w-4" />
+                                        <Building2 className="h-4 w-4" />
                                         Organizations
                                     </button>
                                     <button
@@ -690,7 +686,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                             LIQUID_GLASS_HOVER_CLASS,
                                         )}
                                     >
-                                        <SignOutSkeuoIcon className="h-4 w-4" />
+                                        <LogOut className="h-4 w-4" />
                                         Sign out
                                     </button>
                                 </div>

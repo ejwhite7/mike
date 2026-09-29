@@ -15,7 +15,7 @@ type EmptyStateProps = {
 };
 
 /**
- * The standard "nothing here yet" block: icon, serif display heading, muted
+ * The standard "nothing here yet" block: icon, display heading, muted
  * body copy and an optional call to action. Drop it inside `TableEmptyState`
  * for tables, or use it standalone for panels.
  */
@@ -41,7 +41,7 @@ export function EmptyState({
                     {icon}
                 </span>
             ) : null}
-            <p className="font-serif text-2xl font-medium text-gray-900">
+            <p className="font-sans text-2xl font-semibold tracking-tight text-gray-900">
                 {title}
             </p>
             {description ? (
@@ -49,7 +49,7 @@ export function EmptyState({
                     data-slot="empty-state-description"
                     className={cn(
                         "mt-1 max-w-xs text-xs",
-                        tone === "error" ? "text-red-500" : "text-gray-400",
+                        tone === "error" ? "text-red-500" : "text-muted-foreground",
                     )}
                 >
                     {description}

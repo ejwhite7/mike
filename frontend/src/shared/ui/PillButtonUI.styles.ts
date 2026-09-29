@@ -44,6 +44,7 @@ export function pillButtonUIClassName({
         clsx(
             "inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100",
             toneClasses[tone],
+            `ui-action-${tone}`,
             sizeClasses[size],
             className,
         ),

@@ -41,7 +41,6 @@ import {
   sendPasswordReset,
   signInWithPassword,
   signOut,
-  signUpWithPassword,
   startGoogleOAuth,
   ssoRequestSchema,
   startSsoSignIn,
@@ -142,26 +141,12 @@ authRouter.post("/login", asyncRoute(async (req, res) => {
   }
 }));
 
-authRouter.post("/signup", asyncRoute(async (req, res) => {
-  const parsed = credentialsSchema.safeParse(req.body);
-  if (!parsed.success) return invalidBody(res);
-
-  try {
-    const client = createRequestSupabase(req, res);
-    const { data, error } = await signUpWithPassword(
-      client,
-      parsed.data,
-      callbackUrl(req, req.body?.next, "/onboarding/profile"),
-    );
-    if (error || !data.user) return authError(res, error);
-    res.status(201).json({
-      user: publicAuthUser(data.user),
-      requiresEmailConfirmation: !data.session,
-    });
-  } catch (error) {
-    authError(res, error);
-  }
-}));
+authRouter.post("/signup", (_req, res) => {
+  res.status(403).json({
+    code: "signup_disabled",
+    detail: "GrowthCast Legal is private and invitation-only.",
+  });
+});
 
 async function startSso(req: Request, res: Response) {
   try {

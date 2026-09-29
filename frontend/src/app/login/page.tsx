@@ -149,15 +149,9 @@ export default function LoginPage() {
                         <SsoAuthButton disabled={loading} />
                     </form>
                 </div>
-                <div className="text-center text-sm text-gray-500">
-                    Don&apos;t have an account?{" "}
-                    <Link
-                        href="/signup"
-                        className="font-medium transition-colors hover:text-gray-950"
-                    >
-                        Sign up
-                    </Link>
-                </div>
+                <p className="text-center text-sm text-gray-500">
+                    GrowthCast Legal is private and invitation-only.
+                </p>
             </div>
         </div>
     );

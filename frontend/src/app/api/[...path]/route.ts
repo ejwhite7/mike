@@ -40,6 +40,11 @@ async function proxy(request: NextRequest, context: RouteContext) {
         // makes successful profile/settings saves look like failures.
         headers.delete("if-none-match");
         headers.delete("if-modified-since");
+        // Do not negotiate a compressed representation across the server-side
+        // fetch boundary. Undici transparently decodes gzip/deflate but leaves
+        // their representation headers intact, while zstd can remain encoded;
+        // that ambiguity can produce an empty or unparsable response in Vercel.
+        headers.set("accept-encoding", "identity");
         headers.set("x-forwarded-host", request.nextUrl.host);
         headers.set(
             "x-forwarded-proto",

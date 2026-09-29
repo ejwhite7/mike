@@ -53,6 +53,7 @@ describe("same-origin API gateway", () => {
                     origin: "https://app.example.test",
                     "if-none-match": '"stale-browser-etag"',
                     "if-modified-since": "Mon, 29 Sep 2026 18:00:00 GMT",
+                    "accept-encoding": "gzip, deflate, br, zstd",
                 },
             },
         );
@@ -74,6 +75,7 @@ describe("same-origin API gateway", () => {
         expect(forwardedHeaders.get("host")).toBeNull();
         expect(forwardedHeaders.get("if-none-match")).toBeNull();
         expect(forwardedHeaders.get("if-modified-since")).toBeNull();
+        expect(forwardedHeaders.get("accept-encoding")).toBe("identity");
         expect(forwardedHeaders.get("x-forwarded-host")).toBe(
             "app.example.test",
         );

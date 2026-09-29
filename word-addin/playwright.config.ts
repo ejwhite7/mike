@@ -52,11 +52,13 @@ export default defineConfig({
     },
   ],
 
-  // Build the production bundle, then static-serve dist/ over HTTP. Build runs
+  // WORD_E2E_DEVELOPMENT=1 exercises React development-only warnings with
+  // the same static server and Office mocks (no HTTPS/keychain dependency).
+  // Build the production bundle by default, then static-serve dist/ over HTTP. Build runs
   // here so `npx playwright test` works standalone; reuse a running server
   // locally to avoid rebuilding on every invocation.
   webServer: {
-    command: "npm run build:e2e && npm run serve:e2e",
+    command: `npm run ${process.env.WORD_E2E_DEVELOPMENT === "1" ? "build:e2e:development" : "build:e2e"} && npm run serve:e2e`,
     url: `${BASE_URL}/taskpane.html`,
     reuseExistingServer: !process.env.CI,
     // Generous because the command includes a cold typecheck + production

@@ -682,21 +682,22 @@ export function TRChatPanel({
         hasScrolledRef.current = false;
     }, [currentChatId]);
 
+    const hasMessages = messages.length > 0;
+    const userMessageCount = messages.filter(
+        (message) => message.role === "user",
+    ).length;
     useEffect(() => {
         if (isLoadingMessages) {
             hasScrolledRef.current = false;
             setMessagesVisible(false);
             return;
         }
-        if (messages.length === 0) {
+        if (!hasMessages) {
             hasScrolledRef.current = false;
             setMessagesVisible(false);
         } else if (!hasScrolledRef.current) {
-            const userMsgCount = messages.filter(
-                (m) => m.role === "user",
-            ).length;
             if (
-                userMsgCount >= 2 &&
+                userMessageCount >= 2 &&
                 latestUserMessageRef.current &&
                 messagesContainerRef.current
             ) {
@@ -711,7 +712,15 @@ export function TRChatPanel({
                 setMessagesVisible(true);
             }
         }
-    }, [messages, isLoadingMessages, currentChatId, scrollLatestUserToTop]);
+        // Text chunks must not restart the positioning delay: a resumed stream
+        // can otherwise keep the entire transcript at opacity: 0 until DONE.
+    }, [
+        hasMessages,
+        userMessageCount,
+        isLoadingMessages,
+        currentChatId,
+        scrollLatestUserToTop,
+    ]);
 
     useLayoutEffect(() => {
         if (isLoadingMessages) return;

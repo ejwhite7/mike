@@ -503,8 +503,45 @@ describe("TRChatPanel server-owned turns", () => {
         });
     });
     afterEach(() => {
+        vi.useRealTimers();
         vi.unstubAllGlobals();
         vi.restoreAllMocks();
+    });
+
+    it("reveals resumed history while chunks keep arriving faster than the positioning delay", async () => {
+        vi.useFakeTimers();
+        const stream = controlledStream();
+        vi.mocked(getTabularChats).mockResolvedValue([{
+            id: "chat-1",
+            title: "Ongoing review",
+            created_at: new Date().toISOString(),
+            active_turn: { id: "turn-1", seq: 1, assistant_message_id: "answer-1" },
+        }] as TRChat[]);
+        vi.mocked(getTabularChatMessages).mockResolvedValue([
+            { id: "q1", chat_id: "chat-1", role: "user", content: "Earlier question" },
+            { id: "a1", chat_id: "chat-1", role: "assistant", content: [{ type: "content", text: "Earlier answer" }] },
+            { id: "q2", chat_id: "chat-1", role: "user", content: "Still answering this question" },
+        ] as Awaited<ReturnType<typeof getTabularChatMessages>>);
+        vi.mocked(streamTabularChatTurn).mockResolvedValue(stream.response);
+        const view = render(<TRChatPanel reviewId="review-1" initialChatId="chat-1" onCitationClick={vi.fn()} />);
+        stubViewportScroll(view.container);
+        await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+        expect(streamTabularChatTurn).toHaveBeenCalledTimes(1);
+        try {
+            for (let i = 0; i < 50; i++) {
+                await act(async () => {
+                    stream.push(`data: ${JSON.stringify({ type: "content_delta", text: `Chunk ${i}. ` })}\n\n`);
+                    await vi.advanceTimersByTimeAsync(20);
+                });
+            }
+            // Waiting until DONE hides this starvation: every chunk used to
+            // cancel and restart the 100ms timer, keeping loaded history blank.
+            expect(view.container.querySelector(".transition-opacity")).toHaveStyle({ opacity: "1" });
+            expect(screen.getByText(/Chunk 0/)).toBeInTheDocument();
+        } finally {
+            await act(async () => { stream.push("data: [DONE]\n\n"); stream.close(); });
+            view.unmount();
+        }
     });
 
     it("stops through the endpoint instead of dropping the connection", async () => {

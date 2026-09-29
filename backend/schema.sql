@@ -1125,6 +1125,9 @@ create index if not exists quick_actions_user_surface_order_idx
 create index if not exists quick_actions_workflow_idx
   on public.quick_actions(workflow_id);
 
+alter table public.default_workflow_installations enable row level security;
+alter table public.quick_actions enable row level security;
+
 create table if not exists public.mike_workflows (
   id uuid primary key default gen_random_uuid(),
   workflow_key text not null,
@@ -6562,6 +6565,8 @@ revoke all on public.hidden_workflows from anon, authenticated;
 revoke all on public.workflow_shares from anon, authenticated;
 revoke all on public.workflow_org_access_overrides from anon, authenticated;
 revoke all on public.workflow_open_source_submissions from anon, authenticated;
+revoke all on public.default_workflow_installations from anon, authenticated;
+revoke all on public.quick_actions from anon, authenticated;
 revoke all on public.mike_workflows from anon, authenticated;
 revoke all on public.mike_workflow_assets from anon, authenticated;
 revoke all on public.workflow_addons from anon, authenticated;
@@ -6597,6 +6602,14 @@ revoke all on public.memory_consolidation_states from anon, authenticated;
 revoke all on public.memory_conversation_activity from anon, authenticated;
 revoke all on public.memory_conversation_turn_leases from anon, authenticated;
 revoke all on public.memory_consolidation_results from anon, authenticated;
+revoke all on function public.handle_new_user()
+  from public, anon, authenticated;
+revoke all on function public.handle_user_email_updated()
+  from public, anon, authenticated;
+revoke all on function public.org_members_protect_last_admin()
+  from public, anon, authenticated;
+revoke all on function public.touch_chat_from_message()
+  from public, anon, authenticated;
 revoke all on function public.replace_mike_workflows(text, jsonb)
   from public, anon, authenticated;
 revoke all on function public.install_missing_default_workflows(text)

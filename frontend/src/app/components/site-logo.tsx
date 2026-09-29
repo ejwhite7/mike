@@ -1,5 +1,5 @@
+import Image from "next/image";
 import Link from "next/link";
-import { MikeIcon } from "@/app/components/chat/mike-icon";
 
 interface SiteLogoProps {
     size?: "sm" | "md" | "lg" | "xl";
@@ -16,37 +16,32 @@ export function SiteLogo({
     animate = false,
     asLink = false,
 }: SiteLogoProps) {
-    const landingHref =
-        process.env.NODE_ENV === "production"
-            ? "https://mikeoss.com"
-            : "http://localhost:3000";
+    const landingHref = "/";
     const sizeClasses = {
-        sm: "text-xl",
-        md: "text-2xl",
-        lg: "text-4xl",
-        xl: "text-6xl",
-    };
-
-    const iconSizes = {
-        sm: 20,
-        md: 22,
-        lg: 30,
-        xl: 48,
+        sm: "w-24",
+        md: "w-28",
+        lg: "w-40",
+        xl: "w-56",
     };
 
     const logo = (
-        <h1
-            className={`flex items-center gap-1.5 ${sizeClasses[size]} font-light font-serif ${
+        <div
+            className={`flex flex-col ${sizeClasses[size]} ${
                 animate ? "sidebar-fade-in" : ""
             } ${className}`}
         >
-            <span
-                className={`inline-flex shrink-0 items-center leading-none ${iconClassName}`}
-            >
-                <MikeIcon size={iconSizes[size]} />
+            <Image
+                src="/growthcast-wordmark.png"
+                alt="GrowthCast"
+                width={1000}
+                height={400}
+                priority
+                className={`h-auto w-full dark:invert ${iconClassName}`}
+            />
+            <span className="mt-0.5 text-right text-[10px] leading-none text-gray-500">
+                Legal, powered by Mike
             </span>
-            <span>Mike</span>
-        </h1>
+        </div>
     );
 
     if (asLink) {

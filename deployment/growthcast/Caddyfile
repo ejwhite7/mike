@@ -2,7 +2,7 @@
     email ewhite@growthcast.app
 }
 
-api.legal.growthcast.com {
+mike-legal-api.18.210.39.226.nip.io {
     encode zstd gzip
     reverse_proxy backend:3001
 

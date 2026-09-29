@@ -15,7 +15,7 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-    metadataBase: new URL("https://legal.growthcast.com"),
+    metadataBase: new URL("https://legal.growthcast.app"),
     title: "GrowthCast Legal | Powered by Mike",
     description:
         "Private AI-powered legal document analysis and contract review for GrowthCast.",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     },
     openGraph: {
         type: "website",
-        url: "https://legal.growthcast.com",
+        url: "https://legal.growthcast.app",
         siteName: "GrowthCast Legal",
         title: "GrowthCast Legal | Powered by Mike",
         description:

@@ -35,6 +35,11 @@ async function proxy(request: NextRequest, context: RouteContext) {
         headers.delete("host");
         headers.delete("connection");
         headers.delete("content-length");
+        // API responses are user-specific and must never be conditionally
+        // revalidated through Vercel. A backend 304 has no JSON body, which
+        // makes successful profile/settings saves look like failures.
+        headers.delete("if-none-match");
+        headers.delete("if-modified-since");
         headers.set("x-forwarded-host", request.nextUrl.host);
         headers.set(
             "x-forwarded-proto",
@@ -59,6 +64,10 @@ async function proxy(request: NextRequest, context: RouteContext) {
         // Fetch implementations may transparently decompress the response.
         responseHeaders.delete("content-encoding");
         responseHeaders.delete("content-length");
+        responseHeaders.delete("etag");
+        responseHeaders.delete("last-modified");
+        responseHeaders.delete("expires");
+        responseHeaders.set("cache-control", "private, no-store");
 
         return new Response(upstream.body, {
             status: upstream.status,

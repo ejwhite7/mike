@@ -29,6 +29,7 @@ describe("same-origin API gateway", () => {
     it("forwards cookies, origin, query parameters, and encoded path segments", async () => {
         const upstreamHeaders = new Headers({
             "content-type": "application/json",
+            etag: '"user-specific-response"',
         });
         upstreamHeaders.append(
             "set-cookie",
@@ -50,6 +51,8 @@ describe("same-origin API gateway", () => {
                 headers: {
                     cookie: "__Host-mike-session=incoming",
                     origin: "https://app.example.test",
+                    "if-none-match": '"stale-browser-etag"',
+                    "if-modified-since": "Mon, 29 Sep 2026 18:00:00 GMT",
                 },
             },
         );
@@ -69,6 +72,8 @@ describe("same-origin API gateway", () => {
         );
         expect(forwardedHeaders.get("origin")).toBe("https://app.example.test");
         expect(forwardedHeaders.get("host")).toBeNull();
+        expect(forwardedHeaders.get("if-none-match")).toBeNull();
+        expect(forwardedHeaders.get("if-modified-since")).toBeNull();
         expect(forwardedHeaders.get("x-forwarded-host")).toBe(
             "app.example.test",
         );
@@ -78,6 +83,8 @@ describe("same-origin API gateway", () => {
         expect(response.headers.get("set-cookie")).toContain(
             "__Host-mike-session.1=two",
         );
+        expect(response.headers.get("etag")).toBeNull();
+        expect(response.headers.get("cache-control")).toBe("private, no-store");
     });
 
     it("streams request and SSE response bodies without buffering", async () => {

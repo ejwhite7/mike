@@ -362,18 +362,6 @@ export default function SettingsPage() {
         </SettingsCard>
       </section>
 
-      {/* Plan */}
-      <section className="space-y-3">
-        <SettingsHeading>Usage Plan</SettingsHeading>
-        <SettingsCard>
-          <SettingsRow layout="stacked">
-            <p className="text-base font-medium text-gray-500 capitalize">
-              {profile?.tier || "Free"}
-            </p>
-          </SettingsRow>
-        </SettingsCard>
-      </section>
-
       {/* Danger Zone */}
       <section className="space-y-3">
         <SettingsHeading tone="danger">Danger Zone</SettingsHeading>

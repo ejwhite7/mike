@@ -49,7 +49,7 @@ jobs:
     # React's passive-update warning is development-only. Keep the focused,
     # keyless streaming regression on next dev as well as the production suite.
     name: Assistant streaming (development)
-    timeout-minutes: 20
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     env:
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
@@ -86,7 +86,7 @@ jobs:
             cat /tmp/assistant-streaming-next.log
             exit 1
           fi
-          npx playwright test e2e/assistant-streaming.spec.ts --project=chromium --no-deps --retries=0 --trace=retain-on-failure
+          npx playwright test e2e/assistant-streaming.spec.ts e2e/tabular-chat-lifecycle.spec.ts --project=chromium --no-deps --retries=0 --trace=retain-on-failure
       - uses: actions/upload-artifact@v7
         if: always()
         with:

@@ -59,6 +59,56 @@ alive. The regression assertions run before `[DONE]`; waiting for completion
 would mask the bug. Existing same-length chat-switch and geometry tests remain
 part of validation.
 
+### Text animation loses elapsed time and never sleeps
+
+A frame-controlled test delivered 120 deltas, each 1ms before its next 16ms
+animation frame. The old effect cancelled the frame and reset `lastTick` on each
+new text length. After 1.92 seconds only 42 of 220 available characters were
+visible. Separate assertions proved that an empty/caught-up stream still owned
+an animation frame and that restarting after inactive history could briefly
+hide already completed text.
+
+The scheduler now updates its target without replacing a pending frame, retains
+elapsed time, compares the published integer before dispatch, sleeps when caught
+up, and wakes on a new backlog. Inactive text and shorter replacements synchronize
+the cursor; unmount cancels the outstanding frame. These are timing/liveness
+bugs, not evidence that this hook independently caused the original passive-depth
+warning.
+
+### Refreshed tabular data resets the document selection
+
+The side panel's reset effect depended on `row`, `documents` and `document`
+objects. Replacing those objects with equivalent refreshed data changed the
+selected source back to the initial document and reopened a pane the user had
+collapsed. A 300-refresh regression failed before the fix. The reset now depends
+on cell/row/document identities and citation values; genuine navigation still
+resets the view.
+
+### Out-of-order tabular histories replace the selected conversation
+
+The initial history effect and manual history loader both published responses
+without checking whether the user had moved on. Tests reproduced a late initial
+response replacing another chat, and sixteen A/B selections resolving backwards
+leaving selection zero on screen. History requests now carry a generation; only
+the current one may publish messages, warnings or completion. New chat, deletion
+of the selected chat, and unmount retire pending requests. Checking only chat ID
+would be insufficient for A → B → A.
+
+### A fast session response races the app shell's hydration
+
+The reverse-history browser fixture intentionally resolves authentication without
+an artificial delay. It exposed a separate hydration mismatch: an outer auth
+provider could finish before the streamed page layout hydrated. The server had
+rendered the loading shell, while the layout's first client render already used
+the authenticated shell. A `renderToString`/`hydrateRoot` regression reproduced
+the same recovery error independently of Next.
+
+The page layout now retains its existing server loading shell until that layout
+has mounted. This is a single mount transition, independent of auth changes or
+streamed text. It preserves SSR markup and does not delay requests with an
+arbitrary timeout. The hydration unit regression passes; the browser check also
+exercises Strict Mode's replayed initial history requests.
+
 ## Scope of exploration
 
 An AST-assisted inventory found 375 effects across 405 web/shared/add-in source
@@ -74,8 +124,10 @@ inputs, parent callback cycles, external-store snapshots and layout observers.
 | Composer model selection and sidebar activity | Actual callers memoize configured model/chat-ID arrays; existing behavior tests exercised, no additional loop established |
 | Remount-persistent state and Word quick-action store | Snapshots return cached values rather than allocating on every read; no new loop established |
 | Document-table parent callbacks and selection | Memoized derived selection and stable parent callbacks inspected; no new loop established |
-| Tabular document side panel and breadcrumb measurement | Broad dependencies/measurement setters inspected; no demonstrated feedback loop, left unchanged |
-| Smoothed text reveal | Scheduler can remain active while caught up; not established as the source of these passive-update failures and left unchanged |
+| Tabular document side panel | Selection reset reproduced under 300 equivalent row/document refreshes and fixed |
+| Breadcrumb measurement | Inspected; no demonstrated feedback loop, left unchanged |
+| Smoothed text reveal | Lost elapsed time, idle frame scheduling and stale restart cursor reproduced and fixed |
+| Tabular history selection | Reversed request completion reproduced stale transcript replacement; generation guard added |
 
 ## Prevention and limits
 
@@ -86,9 +138,10 @@ errors and uncaught exceptions fail the checks. Unit regressions exercise 300
 chunk updates, coalesced resize notifications, user choice, reopening, Strict
 Mode cleanup and transcript visibility during an unfinished stream.
 
-The Word workflow now runs the focused stress test against a development bundle
-as well as its existing production suite. #556 supplies the corresponding Next
-development job. Mark those checks required in branch protection: a workflow
+The Word workflow now runs the entire suite against a development bundle
+as well as its production suite. The web workflow likewise runs its full stack
+in both modes, alongside focused hermetic streaming tests. Chromium stress
+fixtures use 4x CPU throttling; WebKit has no equivalent CDP control. Mark those checks required in branch protection: a workflow
 definition cannot itself enforce repository settings. The review guidance lives
 in [frontend-testing.md](../frontend-testing.md#review-effects-for-update-loops-and-starvation).
 

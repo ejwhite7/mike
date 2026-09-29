@@ -466,6 +466,7 @@ export function TRChatPanel({
         initialChatId ?? null,
     );
     const currentChatIdRef = useRef(currentChatId);
+    const historyRequestGeneration = useRef(0);
     useLayoutEffect(() => {
         currentChatIdRef.current = currentChatId;
     }, [currentChatId]);
@@ -651,14 +652,33 @@ export function TRChatPanel({
         [currentChatId, reviewId],
     );
 
-    // Load messages for an initial chat id (e.g. from URL)
-    useEffect(() => {
-        if (!initialChatId) return;
+    // History requests can finish out of order (including A → B → A). Only
+    // the latest selection owns the transcript, loading state and warning.
+    async function loadHistory(chatId: string) {
+        const generation = ++historyRequestGeneration.current;
         setIsLoadingMessages(true);
-        getTabularChatMessages(reviewId, initialChatId)
-            .then((raw) => setMessages(mapTRMessages(raw) as TRMessage[]))
-            .catch(() => setMessageLoadWarning(true))
-            .finally(() => setIsLoadingMessages(false));
+        setMessageLoadWarning(false);
+        try {
+            const raw = await getTabularChatMessages(reviewId, chatId);
+            if (generation === historyRequestGeneration.current) {
+                setMessages(mapTRMessages(raw) as TRMessage[]);
+            }
+        } catch {
+            if (generation === historyRequestGeneration.current) {
+                setMessageLoadWarning(true);
+            }
+        } finally {
+            if (generation === historyRequestGeneration.current) {
+                setIsLoadingMessages(false);
+            }
+        }
+    }
+
+    // Load messages for an initial chat id (e.g. from URL). Cleanup also
+    // retires a manually selected history request when the panel unmounts.
+    useEffect(() => {
+        if (initialChatId) void loadHistory(initialChatId);
+        return () => { historyRequestGeneration.current++; };
     }, [reviewId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Fill in title once chats list arrives
@@ -944,6 +964,9 @@ export function TRChatPanel({
     // ---- chat actions ----
 
     function handleNewChat() {
+        historyRequestGeneration.current++;
+        setIsLoadingMessages(false);
+        setMessageLoadWarning(false);
         detachActiveStream();
         setIsLoading(false);
         currentChatIdRef.current = null;
@@ -957,6 +980,9 @@ export function TRChatPanel({
     async function handleDeleteChat(chatId: string) {
         setChats((prev) => prev.filter((c) => c.id !== chatId));
         if (chatId === currentChatId) {
+            historyRequestGeneration.current++;
+            setIsLoadingMessages(false);
+            setMessageLoadWarning(false);
             // Same exit as New chat / Load chat: retire the in-flight stream's
             // generation so its late events cannot land in the emptied list.
             detachActiveStream();
@@ -1006,15 +1032,7 @@ export function TRChatPanel({
         setCurrentChatModel(chat?.model ?? null);
         setCurrentChatReasoningLevel(chat?.reasoning_level ?? null);
         setMessages([]);
-        setIsLoadingMessages(true);
-        try {
-            const raw = await getTabularChatMessages(reviewId, chatId);
-            setMessages(mapTRMessages(raw) as TRMessage[]);
-        } catch {
-            /* ignore */
-        } finally {
-            setIsLoadingMessages(false);
-        }
+        await loadHistory(chatId);
     }
 
     function handleCancel() {

@@ -12,7 +12,7 @@ On every `pull_request` targeting `main` (or `upstream-main`, the fork mirror),
 on manual `workflow_dispatch`, and **nightly at 03:47 UTC** (a `schedule` cron,
 so drift that lands between PRs — dependency bumps, Supabase CLI changes,
 selector-breaking UI tweaks — is caught within a day), the `e2e / playwright`
-job:
+matrix:
 
 1. installs the root (Playwright), `backend/`, and `frontend/` dependencies;
 2. boots **MinIO** (S3-compatible object storage — several specs upload documents);
@@ -25,30 +25,30 @@ job:
 4. writes `backend/.env` and `frontend/.env.local` from the live Supabase values;
 5. builds the backend and runs the pinned `sync:workflows` release job, matching
    production ordering so the default and add-on catalog exists before startup;
-6. **builds** the web app (`next build`) and serves it with `next start` — a
-   production build, not `next dev`, so there is no on-demand compilation (which
-   makes first-hit page loads slow enough to time out specs) and no dev
-   hydration-error overlay (whose injected DOM pollutes text locators). Starts the
-   backend API (`:3001`) and the web server (`:3000`) and waits for both healthy;
+6. serves the production build (`next build` / `next start`) in one job and
+   the development renderer (`next dev`) in another. The development job warms
+   static routes, sets `REACT_STRESS=1` for 4x Chromium CPU pressure, and fails
+   on React/observer loop diagnostics. Development overlays remain observable;
+   they are not suppressed to make selectors pass. Both jobs use the backend
+   API (`:3001`) and web server (`:3000`) with isolated disposable services;
 7. runs `npx playwright test` and uploads the HTML report + traces as an artifact
-   (`playwright-report`) on pass, fail, or timeout.
+   (`playwright-report-production` / `playwright-report-development`) on pass, fail, or timeout.
 
 `e2e/auth.setup.ts` bootstraps the shared test user (`e2e@mike.local`) against
 the local Supabase admin API, so no login secret is needed — the credentials
 baked into that file are the single source of truth.
 
-The separate **Assistant streaming (development)** job runs only
-`e2e/assistant-streaming.spec.ts` against `next dev`, with synthetic API/SSE
+The separate **Assistant streaming (development)** job runs
+`e2e/assistant-streaming.spec.ts` and `e2e/tabular-chat-lifecycle.spec.ts` against `next dev`, with synthetic API/SSE
 fixtures and no backend, authentication setup or model-provider key. It catches
 React's development-only passive-update warning on a long conversation. Keep
 this check required alongside the production `playwright` check in branch
 protection. See [frontend-testing.md](frontend-testing.md#assistant-streaming-regressions)
 for a standalone local command.
 
-A keyless run is expected to end **27 passed / 4 skipped / 0 failed** — the
-suite currently has 31 tests, 4 of them LLM-gated (see "Confirm the specs ran"
-below). Use the Playwright summary as the source of truth if tests are added or
-removed.
+Four live-provider cases remain key-gated; the synthetic streaming and history
+stress cases always run. Use the current Playwright summary as the source of
+truth for totals, failures and skips.
 
 ## Accessibility scans
 

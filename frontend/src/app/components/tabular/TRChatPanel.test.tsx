@@ -95,6 +95,44 @@ describe("TRChatPanel header", () => {
         vi.restoreAllMocks();
     });
 
+    it("ignores an initial history response after switching to another thread", async () => {
+        type History = Awaited<ReturnType<typeof getTabularChatMessages>>;
+        let resolveInitial!: (messages: History) => void;
+        vi.mocked(getTabularChatMessages).mockImplementation(async (_reviewId, chatId) => {
+            if (chatId === "chat-1") return new Promise<History>((resolve) => { resolveInitial = resolve; });
+            return [{ id: "new-message", chat_id: chatId, role: "user", content: "Newly selected thread", created_at: "2026-09-29" }];
+        });
+        render(<TRChatPanel reviewId="review-1" initialChatId="chat-1" onCitationClick={vi.fn()} />);
+        const user = userEvent.setup();
+        await user.click(await screen.findByRole("button", { name: "Current draft" }));
+        await user.click(screen.getByRole("menuitem", { name: /Earlier advice/ }));
+        expect(await screen.findByText("Newly selected thread")).toBeInTheDocument();
+        await act(async () => resolveInitial([{ id: "stale", chat_id: "chat-1", role: "user", content: "Stale initial history", created_at: "2026-09-29" }]));
+        expect(screen.queryByText("Stale initial history")).not.toBeInTheDocument();
+        expect(screen.getByText("Newly selected thread")).toBeInTheDocument();
+    });
+
+    it("keeps the latest of sixteen rapid history selections when requests finish backwards", async () => {
+        type History = Awaited<ReturnType<typeof getTabularChatMessages>>;
+        const pending: { chatId: string; resolve: (messages: History) => void }[] = [];
+        vi.mocked(getTabularChatMessages).mockImplementation((_reviewId, chatId) =>
+            new Promise<History>((resolve) => pending.push({ chatId, resolve })));
+        render(<TRChatPanel reviewId="review-1" initialChatId="chat-1" onCitationClick={vi.fn()} />);
+        const user = userEvent.setup();
+        await screen.findByRole("button", { name: "Current draft" });
+        for (let i = 0; i < 16; i++) {
+            await user.click(screen.getByRole("button", { name: i % 2 ? "Earlier advice" : "Current draft" }));
+            await user.click(screen.getByRole("menuitem", { name: i % 2 ? /Current draft/ : /Earlier advice/ }));
+        }
+        expect(pending).toHaveLength(17);
+        for (let i = pending.length - 1; i >= 0; i--) {
+            await act(async () => pending[i].resolve([{ id: `m-${i}`, chat_id: pending[i].chatId,
+                role: "user", content: `Selection ${i}`, created_at: "2026-09-29" }]));
+        }
+        expect(screen.getByText("Selection 16")).toBeInTheDocument();
+        expect(screen.queryByText("Selection 0")).not.toBeInTheDocument();
+    });
+
     it("positions loaded history below the header and remeasures equal-length threads", async () => {
         let resolveMessages!: (
             messages: Awaited<ReturnType<typeof getTabularChatMessages>>,

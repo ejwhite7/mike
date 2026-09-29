@@ -49,14 +49,15 @@ concurrency:
 
 jobs:
   streaming-development:
-    name: Streaming (development, chromium + webkit)
+    name: Development stress (chromium + webkit)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: word-addin
     env:
       WORD_E2E_DEVELOPMENT: "1"
+      REACT_STRESS: "1"
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.0.0
@@ -68,7 +69,7 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit
       # Production React omits the passive-update-depth warning. Exercise the
       # real development bundle too, using the same hermetic Office/API mocks.
-      - run: npx playwright test e2e/assistant-streaming.spec.ts --retries=0 --trace=retain-on-failure
+      - run: npx playwright test --retries=0 --trace=retain-on-failure
       - uses: actions/upload-artifact@v7
         if: always()
         with:

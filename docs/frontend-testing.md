@@ -37,7 +37,8 @@ must exercise a long conversation and paced streaming, not just a completed
 response. `e2e/assistant-streaming.spec.ts` loads eight synthetic exchanges and
 sends four content replies or eight reasoning replies through a browser
 `ReadableStream`, with CPU throttling. The reasoning case also expands,
-collapses and resizes a live disclosure.
+collapses and resizes a live disclosure. Both cases run in the general assistant,
+project assistant and tabular-review chat (six browser scenarios).
 It uses the real Next.js/React renderer, fails on browser console errors and
 uncaught exceptions, and requires no model-provider key. It runs in the regular
 production Playwright suite and the separate **Assistant streaming (development)**
@@ -88,6 +89,14 @@ trigger and how it terminates:
 - Trace parent callbacks and external-store snapshots when objects change every
   render. Fix the source of instability; do not suppress exhaustive-deps or add
   arbitrary debounce delays to hide it.
+- Keep an animation's elapsed time across new chunks and stop requesting frames
+  when caught up. Test deltas arriving just before each frame, not only an idle
+  clock after a single append.
+- Reset user selections on navigation identity, not refreshed object identity.
+  A row/document refetch should not close a pane or replace a chosen source.
+- Retire asynchronous history requests on selection, new chat, deletion and
+  unmount. Test reversed response order, including A → B → A: checking only the
+  chat ID misses stale requests for the same chat.
 - Test cleanup on close, unmount and Strict Mode remount. Test that work settles
   while geometry is unchanged, and that resize without a new message still works.
 
@@ -105,13 +114,25 @@ interactions. Keep both production and development jobs required in branch
 protection. Run the development check with no existing server on port 3100:
 
 ```bash
-WORD_E2E_DEVELOPMENT=1 npm run test:e2e --prefix word-addin -- \
-  e2e/assistant-streaming.spec.ts --retries=0
+WORD_E2E_DEVELOPMENT=1 REACT_STRESS=1 npm run test:e2e --prefix word-addin -- \
+  --retries=0
 ```
 
 An existing local server is reused by Playwright, so make sure it serves the
 intended build mode. Development bundles are static-served with the same Office
 mock; the test does not need Word, HTTPS certificates or a real backend.
+
+The complete web suite also runs on both production and development builds in
+CI. `REACT_STRESS=1` applies 4x Chromium CPU throttling and fails UI fixtures on
+maximum-depth, excessive-render, uncached-snapshot and ResizeObserver-loop
+diagnostics. Word runs its complete hermetic suite in both build modes and both
+engines; WebKit has no equivalent CDP CPU-throttling control. Existing error-path
+tests may intentionally log other errors; the focused streaming/history tests
+additionally fail on every console error and uncaught exception.
+
+`e2e/tabular-chat-lifecycle.spec.ts` switches sixteen times while history requests
+are held, then releases long transcripts in reverse order. The latest selection
+must remain visible before and after a narrow viewport resize.
 
 See [the class audit](incidents/2026-09-29-streaming-effects-audit.md) for the
 confirmed failures, unaffected paths examined and limits of the investigation.
